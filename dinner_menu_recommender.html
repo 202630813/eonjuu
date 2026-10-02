@@ -1,0 +1,1071 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>오늘 저녁 뭐 먹지? - 토스 스타일 저녁 메뉴 추천</title>
+    
+    <!-- Pretendard Font -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+    
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        tossBlue: '#3182F6',
+                        tossBlueHover: '#1B64DA',
+                        tossBlueLight: '#E8F3FF',
+                        tossGrayBg: '#F2F4F6',
+                        tossGraySubBg: '#F9FAFB',
+                        tossTextPrimary: '#191F28',
+                        tossTextSecondary: '#4E5968',
+                        tossTextCaption: '#8B95A1',
+                        tossBorder: '#E5E8EB',
+                    },
+                    fontFamily: {
+                        sans: ['Pretendard', '-apple-system', 'BlinkMacSystemFont', 'system-ui', 'Roboto', 'sans-serif'],
+                    },
+                    boxShadow: {
+                        toss: '0 8px 24px rgba(0, 0, 0, 0.04)',
+                        tossModal: '0 20px 40px rgba(0, 0, 0, 0.12)',
+                        tossButton: '0 4px 12px rgba(49, 130, 246, 0.25)',
+                    },
+                    borderRadius: {
+                        '2xl': '20px',
+                        '3xl': '24px',
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Canvas Confetti Library -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            background-color: #E5E8EB;
+            color: #191F28;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
+        }
+
+        /* Hide scrollbars for slick look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        /* Toss active click effect */
+        .toss-btn {
+            transition: transform 0.15s cubic-bezier(0.2, 0, 0, 1), background-color 0.15s ease, box-shadow 0.15s ease;
+        }
+        .toss-btn:active {
+            transform: scale(0.96);
+        }
+
+        /* Slot machine animation */
+        @keyframes slotRolling {
+            0% { transform: translateY(0); filter: blur(0px); }
+            50% { filter: blur(2px); }
+            100% { transform: translateY(-100%); filter: blur(0px); }
+        }
+
+        .animate-slot {
+            animation: slotRolling 0.15s infinite linear;
+        }
+
+        /* Fade slide in */
+        @keyframes fadeSlideUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-fade-up {
+            animation: fadeSlideUp 0.3s cubic-bezier(0, 0, 0.2, 1) forwards;
+        }
+
+        /* Pulse gradient for highlight */
+        .gradient-border {
+            background: linear-gradient(135deg, #3182F6 0%, #80B5FF 100%);
+        }
+    </style>
+</head>
+<body class="min-h-screen flex justify-center items-center p-0 md:p-6 sm:bg-gray-200">
+
+    <!-- App Container (Mobile viewport emulation on desktop) -->
+    <div class="w-full max-w-[480px] min-h-screen sm:min-h-[850px] sm:max-h-[900px] bg-[#F2F4F6] sm:rounded-[36px] shadow-2xl flex flex-col justify-between overflow-hidden relative border-0 sm:border border-gray-200/80">
+
+        <!-- Top Toss Navigation Header -->
+        <header class="sticky top-0 z-30 bg-[#F2F4F6]/90 backdrop-blur-md px-6 pt-5 pb-3 flex justify-between items-center transition-all">
+            <div class="flex items-center space-x-2 cursor-pointer" onclick="switchTab('home')">
+                <div class="w-8 h-8 rounded-full bg-tossBlue flex items-center justify-center text-white font-black text-lg shadow-sm">
+                    T
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight text-tossTextPrimary leading-none">오늘 저녁 뭐 먹지?</h1>
+                    <span class="text-[11px] font-medium text-tossTextCaption">스마트 메뉴 큐레이터</span>
+                </div>
+            </div>
+            <button onclick="openWishlistModal()" class="relative p-2 rounded-full bg-white text-tossTextSecondary toss-btn shadow-sm border border-gray-100">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.684a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                </svg>
+                <span id="wishlistBadge" class="hidden absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center border-2 border-white">0</span>
+            </button>
+        </header>
+
+        <!-- Dynamic Main Content Area -->
+        <main id="mainContent" class="flex-1 overflow-y-auto px-5 pt-2 pb-24 no-scrollbar">
+            <!-- TAB 1: HOME / SMART RANDOM -->
+            <section id="tab-home" class="tab-content space-y-4 animate-fade-up">
+                <!-- Welcome Banner Card -->
+                <div class="bg-white rounded-3xl p-6 shadow-toss border border-gray-100/80 space-y-3">
+                    <div class="inline-flex items-center space-x-1.5 px-3 py-1 rounded-full bg-tossBlueLight text-tossBlue text-xs font-semibold">
+                        <span>✨ 고민 해결사</span>
+                    </div>
+                    <h2 class="text-2xl font-bold text-tossTextPrimary leading-snug">
+                        저녁 메뉴 결정하기<br>힘드셨죠?
+                    </h2>
+                    <p class="text-sm text-tossTextSecondary leading-relaxed">
+                        버튼 하나로 오늘 완벽한 저녁 메뉴를 추천받아 보세요.
+                    </p>
+                </div>
+
+                <!-- Slot Machine Card View -->
+                <div class="bg-white rounded-3xl p-6 shadow-toss border border-gray-100/80 text-center space-y-5 relative overflow-hidden">
+                    <div class="text-xs font-semibold text-tossTextCaption uppercase tracking-wider">TODAY'S SPECIAL PICK</div>
+                    
+                    <div id="slotDisplay" class="h-36 flex flex-col items-center justify-center bg-tossGrayBg rounded-2xl p-4 border border-gray-200/60 relative overflow-hidden transition-all">
+                        <div id="slotEmoji" class="text-6xl mb-2 transition-transform duration-200 transform">🍱</div>
+                        <div id="slotName" class="text-2xl font-bold text-tossTextPrimary">버튼을 눌러주세요</div>
+                        <div id="slotCategory" class="text-xs text-tossTextCaption mt-1">한식, 중식, 일식 등 60+ 메뉴</div>
+                    </div>
+
+                    <button id="randomRollBtn" onclick="rollRandomMenu()" class="w-full py-4 bg-tossBlue text-white text-lg font-bold rounded-2xl shadow-tossButton toss-btn flex items-center justify-center space-x-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z" />
+                        </svg>
+                        <span>랜덤 저녁 메뉴 뽑기</span>
+                    </button>
+                </div>
+
+                <!-- Quick Pick Grid Shortcuts -->
+                <div class="space-y-3">
+                    <h3 class="text-base font-bold text-tossTextPrimary px-1">상황별 빠른 추천</h3>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div onclick="quickFilterPick('혼밥')" class="bg-white p-4 rounded-2xl shadow-toss border border-gray-100/80 cursor-pointer toss-btn flex items-center justify-between">
+                            <div>
+                                <div class="text-sm font-bold text-tossTextPrimary">🍚 부담없는 혼밥</div>
+                                <div class="text-xs text-tossTextCaption mt-0.5">간편하고 빠르게</div>
+                            </div>
+                            <span class="text-gray-300">›</span>
+                        </div>
+                        <div onclick="quickFilterPick('국물')" class="bg-white p-4 rounded-2xl shadow-toss border border-gray-100/80 cursor-pointer toss-btn flex items-center justify-between">
+                            <div>
+                                <div class="text-sm font-bold text-tossTextPrimary">🍲 따끈한 국물 요리</div>
+                                <div class="text-xs text-tossTextCaption mt-0.5">속이 든든해지는</div>
+                            </div>
+                            <span class="text-gray-300">›</span>
+                        </div>
+                        <div onclick="quickFilterPick('매콤')" class="bg-white p-4 rounded-2xl shadow-toss border border-gray-100/80 cursor-pointer toss-btn flex items-center justify-between">
+                            <div>
+                                <div class="text-sm font-bold text-tossTextPrimary">🔥 스트레스 해소 매콤</div>
+                                <div class="text-xs text-tossTextCaption mt-0.5">화끈하게 땡길 때</div>
+                            </div>
+                            <span class="text-gray-300">›</span>
+                        </div>
+                        <div onclick="quickFilterPick('가성비')" class="bg-white p-4 rounded-2xl shadow-toss border border-gray-100/80 cursor-pointer toss-btn flex items-center justify-between">
+                            <div>
+                                <div class="text-sm font-bold text-tossTextPrimary">💰 가성비 만점</div>
+                                <div class="text-xs text-tossTextCaption mt-0.5">지갑이 가벼울 때</div>
+                            </div>
+                            <span class="text-gray-300">›</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 2: FILTER & SEARCH -->
+            <section id="tab-filter" class="tab-content hidden space-y-4">
+                <!-- Search Bar -->
+                <div class="bg-white rounded-2xl p-2 px-4 shadow-toss border border-gray-100 flex items-center space-x-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-tossTextCaption" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <input type="text" id="searchInput" oninput="applyFilters()" placeholder="음식명, 태그 검색 (예: 초밥, 매콤)" class="w-full py-2 bg-transparent text-sm focus:outline-none text-tossTextPrimary placeholder-tossTextCaption font-medium">
+                </div>
+
+                <!-- Category Horizontal Scroll Chips -->
+                <div>
+                    <div class="text-xs font-bold text-tossTextCaption mb-2 px-1">카테고리</div>
+                    <div class="flex space-x-2 overflow-x-auto no-scrollbar py-1" id="categoryChips">
+                        <!-- Chips inserted by JS -->
+                    </div>
+                </div>
+
+                <!-- Mood / Situation Tag Filter Chips -->
+                <div>
+                    <div class="text-xs font-bold text-tossTextCaption mb-2 px-1">상황 / 기분</div>
+                    <div class="flex flex-wrap gap-1.5" id="tagChips">
+                        <!-- Tag Chips inserted by JS -->
+                    </div>
+                </div>
+
+                <!-- Filtered Result Summary -->
+                <div class="flex justify-between items-center px-1 pt-2">
+                    <span class="text-sm font-bold text-tossTextPrimary">검색 결과 <span id="resultCount" class="text-tossBlue">0</span>개</span>
+                    <button onclick="resetFilters()" class="text-xs text-tossTextCaption hover:text-tossTextSecondary flex items-center space-x-1">
+                        <span>🔄 필터 초기화</span>
+                    </button>
+                </div>
+
+                <!-- Menu Cards Grid -->
+                <div id="menuGrid" class="grid grid-cols-1 gap-3">
+                    <!-- Cards rendered dynamically -->
+                </div>
+            </section>
+
+            <!-- TAB 3: MENU WORLDCUP -->
+            <section id="tab-worldcup" class="tab-content hidden space-y-4">
+                <div class="bg-white rounded-3xl p-5 shadow-toss border border-gray-100 text-center space-y-2">
+                    <div class="inline-flex items-center space-x-1 px-3 py-0.5 rounded-full bg-amber-50 text-amber-600 text-xs font-bold">
+                        🏆 저녁 토너먼트 8강
+                    </div>
+                    <h2 class="text-xl font-bold text-tossTextPrimary">메뉴 이상형 월드컵</h2>
+                    <p class="text-xs text-tossTextSecondary">둘 중 더 먹고 싶은 메뉴를 선택해 보세요!</p>
+                </div>
+
+                <!-- Worldcup Active Arena -->
+                <div id="worldcupArena" class="space-y-4">
+                    <!-- Progress Bar -->
+                    <div class="bg-gray-200 h-2 rounded-full overflow-hidden">
+                        <div id="worldcupProgress" class="bg-tossBlue h-full w-1/4 transition-all duration-300"></div>
+                    </div>
+                    <div id="worldcupRoundText" class="text-center text-xs font-bold text-tossBlue uppercase">8강전 (1/4)</div>
+
+                    <!-- Match Matchup Cards -->
+                    <div class="grid grid-cols-1 gap-4">
+                        <!-- Option A -->
+                        <div id="optionA" onclick="selectWorldcupMatch(0)" class="bg-white p-6 rounded-3xl shadow-toss border-2 border-transparent hover:border-tossBlue cursor-pointer toss-btn text-center space-y-3 transition-all relative">
+                            <span class="absolute top-3 left-3 bg-blue-50 text-tossBlue text-xs font-bold px-2.5 py-1 rounded-full">A</span>
+                            <div id="worldcupEmojiA" class="text-6xl">🍲</div>
+                            <div id="worldcupNameA" class="text-xl font-bold text-tossTextPrimary">김치찌개</div>
+                            <div id="worldcupTagsA" class="text-xs text-tossTextCaption">#한식 #국물 #얼큰</div>
+                        </div>
+
+                        <!-- VS Badge -->
+                        <div class="flex justify-center -my-2 relative z-10">
+                            <span class="bg-tossTextPrimary text-white font-black text-xs px-3 py-1.5 rounded-full shadow-lg">VS</span>
+                        </div>
+
+                        <!-- Option B -->
+                        <div id="optionB" onclick="selectWorldcupMatch(1)" class="bg-white p-6 rounded-3xl shadow-toss border-2 border-transparent hover:border-tossBlue cursor-pointer toss-btn text-center space-y-3 transition-all relative">
+                            <span class="absolute top-3 left-3 bg-red-50 text-red-500 text-xs font-bold px-2.5 py-1 rounded-full">B</span>
+                            <div id="worldcupEmojiB" class="text-6xl">🍕</div>
+                            <div id="worldcupNameB" class="text-xl font-bold text-tossTextPrimary">피자</div>
+                            <div id="worldcupTagsB" class="text-xs text-tossTextCaption">#양식 #파티 #치즈</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Worldcup Winner Screen (Hidden by default) -->
+                <div id="worldcupWinner" class="hidden bg-white rounded-3xl p-6 shadow-toss border border-gray-100 text-center space-y-5 animate-fade-up">
+                    <div class="text-amber-500 font-bold text-sm">👑 최종 우승 메뉴</div>
+                    <div id="winnerEmoji" class="text-8xl py-2">🎉</div>
+                    <div>
+                        <h3 id="winnermenuName" class="text-2xl font-black text-tossTextPrimary">맛있는 음식</h3>
+                        <p id="winnerDesc" class="text-xs text-tossTextSecondary mt-1">오늘 저녁 메뉴로 탁월한 선택입니다!</p>
+                    </div>
+                    <div id="winnerTags" class="flex flex-wrap justify-center gap-1.5"></div>
+
+                    <div class="space-y-2 pt-2">
+                        <button onclick="openMapSearchFromWinner()" class="w-full py-3.5 bg-tossBlue text-white text-sm font-bold rounded-2xl shadow-tossButton toss-btn flex items-center justify-center space-x-2">
+                            <span>📍 근처 맛집 찾기</span>
+                        </button>
+                        <button onclick="restartWorldcup()" class="w-full py-3 bg-tossGrayBg text-tossTextSecondary text-sm font-semibold rounded-2xl toss-btn">
+                             다시 하기
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- TAB 4: ROULETTE WHEEL -->
+            <section id="tab-roulette" class="tab-content hidden space-y-4">
+                <div class="bg-white rounded-3xl p-5 shadow-toss border border-gray-100 text-center space-y-2">
+                    <div class="inline-flex items-center space-x-1 px-3 py-0.5 rounded-full bg-indigo-50 text-indigo-600 text-xs font-bold">
+                        🎡 행운의 룰렛
+                    </div>
+                    <h2 class="text-xl font-bold text-tossTextPrimary">돌려돌려 돌림판</h2>
+                    <p class="text-xs text-tossTextSecondary">원하는 카테고리를 선택하고 룰렛을 돌려보세요!</p>
+                </div>
+
+                <!-- Roulette Controls -->
+                <div class="flex space-x-2 overflow-x-auto no-scrollbar py-1">
+                    <button onclick="setRouletteCategory('ALL')" class="roulette-cat-btn px-3.5 py-1.5 rounded-full text-xs font-bold bg-tossTextPrimary text-white toss-btn shrink-0">전체 8종</button>
+                    <button onclick="setRouletteCategory('한식')" class="roulette-cat-btn px-3.5 py-1.5 rounded-full text-xs font-bold bg-white text-tossTextSecondary border border-gray-200 toss-btn shrink-0">한식만</button>
+                    <button onclick="setRouletteCategory('일식')" class="roulette-cat-btn px-3.5 py-1.5 rounded-full text-xs font-bold bg-white text-tossTextSecondary border border-gray-200 toss-btn shrink-0">일식만</button>
+                    <button onclick="setRouletteCategory('중식')" class="roulette-cat-btn px-3.5 py-1.5 rounded-full text-xs font-bold bg-white text-tossTextSecondary border border-gray-200 toss-btn shrink-0">중식만</button>
+                    <button onclick="setRouletteCategory('양식')" class="roulette-cat-btn px-3.5 py-1.5 rounded-full text-xs font-bold bg-white text-tossTextSecondary border border-gray-200 toss-btn shrink-0">양식만</button>
+                    <button onclick="setRouletteCategory('야식')" class="roulette-cat-btn px-3.5 py-1.5 rounded-full text-xs font-bold bg-white text-tossTextSecondary border border-gray-200 toss-btn shrink-0">야식/술안주</button>
+                </div>
+
+                <!-- Wheel Canvas Container -->
+                <div class="bg-white rounded-3xl p-6 shadow-toss border border-gray-100 flex flex-col items-center justify-center relative space-y-4">
+                    <!-- Pointer Indicator -->
+                    <div class="absolute top-4 left-1/2 -translate-x-1/2 z-20 text-3xl font-black text-red-500 drop-shadow">
+                        ▼
+                    </div>
+
+                    <div class="relative w-72 h-72 flex items-center justify-center my-2">
+                        <canvas id="rouletteCanvas" width="300" height="300" class="w-full h-full rounded-full transition-transform duration-[4000ms] cubic-bezier(0.15, 0.9, 0.2, 1)"></canvas>
+                        <!-- Center pin -->
+                        <div class="absolute w-12 h-12 bg-white rounded-full shadow-md flex items-center justify-center font-extrabold text-tossBlue text-xs z-10 border-2 border-tossBlue">
+                            TOSS
+                        </div>
+                    </div>
+
+                    <button id="spinWheelBtn" onclick="spinRouletteWheel()" class="w-full py-4 bg-tossBlue text-white text-lg font-bold rounded-2xl shadow-tossButton toss-btn flex items-center justify-center space-x-2">
+                        <span>🎯 룰렛 돌리기</span>
+                    </button>
+                </div>
+            </section>
+
+            <!-- TAB 5: WISHLIST / SAVED (Handled mostly inside Modal or dedicated Tab) -->
+            <section id="tab-saved" class="tab-content hidden space-y-4">
+                <div class="bg-white rounded-3xl p-5 shadow-toss border border-gray-100 flex justify-between items-center">
+                    <div>
+                        <h2 class="text-xl font-bold text-tossTextPrimary">내 저녁 보관함</h2>
+                        <p class="text-xs text-tossTextCaption mt-0.5">찜해둔 맛있는 메뉴들입니다.</p>
+                    </div>
+                    <button onclick="clearAllWishlist()" class="text-xs text-red-500 hover:underline">전체 삭제</button>
+                </div>
+
+                <div id="savedMenuList" class="grid grid-cols-1 gap-3">
+                    <!-- Wishlist dynamic items -->
+                </div>
+            </section>
+        </main>
+
+        <!-- Toss Style Floating Bottom Navigation Bar -->
+        <nav class="fixed bottom-0 sm:absolute w-full max-w-[480px] bg-white/90 backdrop-blur-lg border-t border-gray-100 px-3 py-2 flex justify-around items-center z-40 rounded-b-none sm:rounded-b-[36px]">
+            <button onclick="switchTab('home')" id="nav-home" class="nav-item flex flex-col items-center py-1 px-3 rounded-xl text-tossBlue font-bold transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                <span class="text-[10px] mt-1">홈/추천</span>
+            </button>
+
+            <button onclick="switchTab('filter')" id="nav-filter" class="nav-item flex flex-col items-center py-1 px-3 rounded-xl text-tossTextCaption font-medium transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2a1 1 0 01-.293.707L13 13.414V19a1 1 0 01-.447.894l-4 2A1 1 0 017 21v-7.586L3.293 6.707A1 1 0 013 6V4z" />
+                </svg>
+                <span class="text-[10px] mt-1">검색/필터</span>
+            </button>
+
+            <button onclick="switchTab('worldcup')" id="nav-worldcup" class="nav-item flex flex-col items-center py-1 px-3 rounded-xl text-tossTextCaption font-medium transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+                <span class="text-[10px] mt-1">이상형월드컵</span>
+            </button>
+
+            <button onclick="switchTab('roulette')" id="nav-roulette" class="nav-item flex flex-col items-center py-1 px-3 rounded-xl text-tossTextCaption font-medium transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span class="text-[10px] mt-1">룰렛</span>
+            </button>
+
+            <button onclick="switchTab('saved')" id="nav-saved" class="nav-item flex flex-col items-center py-1 px-3 rounded-xl text-tossTextCaption font-medium transition-all">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                </svg>
+                <span class="text-[10px] mt-1">보관함</span>
+            </button>
+        </nav>
+
+        <!-- Menu Detail & Winner Modal Popup -->
+        <div id="detailModal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm p-0 sm:p-4 transition-opacity duration-300">
+            <div class="bg-white w-full max-w-[480px] rounded-t-3xl sm:rounded-3xl p-6 shadow-tossModal space-y-5 animate-fade-up max-h-[85vh] overflow-y-auto no-scrollbar">
+                <div class="flex justify-between items-start">
+                    <span id="modalCategoryBadge" class="px-3 py-1 rounded-full bg-tossBlueLight text-tossBlue text-xs font-bold">카테고리</span>
+                    <button onclick="closeModal('detailModal')" class="p-1 rounded-full text-tossTextCaption hover:bg-gray-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="text-center space-y-2">
+                    <div id="modalEmoji" class="text-7xl py-1">🍱</div>
+                    <h3 id="modalName" class="text-2xl font-bold text-tossTextPrimary">음식 이름</h3>
+                    <p id="modalDesc" class="text-xs text-tossTextSecondary leading-relaxed px-4">음식 설명이 들어갑니다.</p>
+                </div>
+
+                <!-- Price and Info Tags -->
+                <div class="bg-tossGrayBg p-4 rounded-2xl flex justify-around items-center text-center">
+                    <div>
+                        <div class="text-[11px] text-tossTextCaption font-medium">예상 가격대</div>
+                        <div id="modalPrice" class="text-sm font-bold text-tossTextPrimary mt-0.5">10,000원 대</div>
+                    </div>
+                    <div class="h-8 w-px bg-gray-200"></div>
+                    <div>
+                        <div class="text-[11px] text-tossTextCaption font-medium">추천 태그</div>
+                        <div id="modalTagsCount" class="text-sm font-bold text-tossBlue mt-0.5">#인기 #강추</div>
+                    </div>
+                </div>
+
+                <div id="modalTags" class="flex flex-wrap gap-1.5 justify-center"></div>
+
+                <!-- Map Action Buttons -->
+                <div class="space-y-2 pt-2">
+                    <div class="text-xs font-bold text-tossTextCaption text-center">근처 맛집 지도 검색</div>
+                    <div class="grid grid-cols-2 gap-2">
+                        <a id="naverMapBtn" href="#" target="_blank" class="py-3 bg-[#03C75A] text-white text-xs font-bold rounded-2xl toss-btn flex items-center justify-center space-x-1.5 shadow-sm">
+                            <span>네이버 지도로 찾기</span>
+                        </a>
+                        <a id="kakaoMapBtn" href="#" target="_blank" class="py-3 bg-[#FEE500] text-[#191F28] text-xs font-bold rounded-2xl toss-btn flex items-center justify-center space-x-1.5 shadow-sm">
+                            <span>카카오 맵으로 찾기</span>
+                        </a>
+                    </div>
+
+                    <button id="modalWishlistToggleBtn" onclick="toggleCurrentModalWishlist()" class="w-full py-3 bg-tossGrayBg text-tossTextPrimary text-xs font-bold rounded-2xl toss-btn flex items-center justify-center space-x-1">
+                        <span id="wishlistIcon">❤️</span>
+                        <span id="wishlistText">내 보관함에 찜하기</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast Notification Container -->
+        <div id="toast" class="fixed top-6 left-1/2 -translate-x-1/2 z-50 bg-tossTextPrimary/90 text-white text-xs font-semibold px-4 py-3 rounded-full shadow-lg opacity-0 pointer-events-none transition-all duration-300 flex items-center space-x-2">
+            <span id="toastMsg">알림 메시지</span>
+        </div>
+    </div>
+
+    <script>
+        const FOOD_DATABASE = [
+            // 한식 (20가지)
+            { id: 1, name: "김치찌개", category: "한식", emoji: "🍲", price: "8,000원 ~ 10,000원", tags: ["국물", "얼큰", "혼밥", "가성비", "든든한"], desc: "얼큰하고 칼칼한 한국인의 영원한 소울푸드" },
+            { id: 2, name: "된장찌개", category: "한식", emoji: "🥘", price: "8,000원 ~ 10,000원", tags: ["국물", "구수한", "혼밥", "가성비"], desc: "구수하고 깊은 맛이 감도는 따스한 한 끼 식사" },
+            { id: 3, name: "삼겹살", category: "한식", emoji: "🥓", price: "15,000원 ~ 20,000원", tags: ["고기", "회식", "기분전환", "술안주"], desc: "지글지글 고소하게 구워 먹는 행복한 육즙" },
+            { id: 4, name: "제육볶음", category: "한식", emoji: "🥩", price: "9,000원 ~ 11,000원", tags: ["매콤", "고기", "혼밥", "가성비", "든든한"], desc: "매콤달콤한 양념에 잘 볶아낸 최고의 밥도둑" },
+            { id: 5, name: "비빔밥", category: "한식", emoji: "🥗", price: "8,500원 ~ 11,000원", tags: ["건강", "가볍게", "혼밥", "가성비"], desc: "각종 나물과 고추장의 신선하고 조화로운 맛" },
+            { id: 6, name: "닭볶음탕", category: "한식", emoji: "🍗", price: "25,000원 ~ 35,000원", tags: ["매콤", "고기", "국물", "술안주", "특별한 날"], desc: "매콤한 양념이 베어든 푹 익은 닭고기와 감자" },
+            { id: 7, name: "순대국밥", category: "한식", emoji: "🥣", price: "9,000원 ~ 11,000원", tags: ["국물", "혼밥", "든든한", "가성비", "해장"], desc: "진한 진국 국물로 속을 따뜻하게 풀어주는 순대국" },
+            { id: 8, name: "삼계탕", category: "한식", emoji: "🍲", price: "15,000원 ~ 18,000원", tags: ["국물", "건강", "몸보신", "든든한"], desc: "부드러운 영계와 인삼이 들어간 정성 어린 보양식" },
+            { id: 9, name: "부대찌개", category: "한식", emoji: "🥘", price: "10,000원 ~ 12,000원", tags: ["국물", "매콤", "든든한", "친구랑"], desc: "햄과 라면사리가 푸짐하게 들어간 찌개" },
+            { id: 10, name: "불고기", category: "한식", emoji: "🍖", price: "12,000원 ~ 18,000원", tags: ["달콤", "고기", "아이입맛", "든든한"], desc: "달콤짭조름한 양념이 매력적인 부드러운 소불고기" },
+            { id: 11, name: "족발", category: "한식", emoji: "🍖", price: "30,000원 ~ 40,000원", tags: ["야식", "고기", "술안주", "특별한 날"], desc: "쫄깃쫄깃한 콜라겐과 고소함이 가득한 족발" },
+            { id: 12, name: "보쌈", category: "한식", emoji: "🥬", price: "30,000원 ~ 40,000원", tags: ["야식", "고기", "담백한", "술안주"], desc: "촉촉한 수육에 신선한 보쌈김치의 환상 조합" },
+            { id: 13, name: "감자탕", category: "한식", emoji: "🍲", price: "28,000원 ~ 38,000원", tags: ["국물", "매콤", "술안주", "든든한", "해장"], desc: "실한 등뼈와 우거지가 가득한 진한 국물요리" },
+            { id: 14, name: "찜닭", category: "한식", emoji: "🍗", price: "22,000원 ~ 32,000원", tags: ["달콤", "매콤", "고기", "친구랑"], desc: "당면과 매콤짭짤한 간장 양념이 어우러진 찜닭" },
+            { id: 15, name: "육회비빔밥", category: "한식", emoji: "🍚", price: "11,000원 ~ 15,000원", tags: ["건강", "고기", "기분전환", "혼밥"], desc: "신선한 육회와 참기름 고소함이 톡톡 터지는 맛" },
+            { id: 16, name: "갈비탕", category: "한식", emoji: "🥣", price: "13,000원 ~ 16,000원", tags: ["국물", "담백한", "혼밥", "든든한"], desc: "맑고 기품 있는 뼈 국물에 부드러운 갈비살" },
+            { id: 17, name: "곱창구이", category: "한식", emoji: "🍳", price: "20,000원 ~ 28,000원", tags: ["기분전환", "고기", "술안주", "특별한 날"], desc: "고소한 곱이 팡팡 터지는 노릇노릇 곱창 구이" },
+            { id: 18, name: "떡갈비", category: "한식", emoji: "🧆", price: "11,000원 ~ 15,000원", tags: ["달콤", "고기", "아이입맛", "든든한"], desc: "육즙을 꼭 쥐고 있는 다진 고기 구이" },
+            { id: 19, name: "간장게장", category: "한식", emoji: "🦀", price: "25,000원 ~ 38,000원", tags: ["특별한 날", "해산물", "기분전환"], desc: "밥 한 공기 뚝딱 비우게 만드는 감칠맛 명작" },
+            { id: 20, name: "뚝배기불고기", category: "한식", emoji: "🍲", price: "9,500원 ~ 11,000원", tags: ["달콤", "국물", "혼밥", "가성비"], desc: "따끈한 뚝배기 속 달콤한 당면과 불고기" },
+
+            // 중식 (10가지)
+            { id: 21, name: "짜장면", category: "중식", emoji: "🍜", price: "7,000원 ~ 8,500원", tags: ["달콤", "가성비", "혼밥", "빠른"], desc: "춘장의 고소함과 쫄깃한 면발의 국민 중화요리" },
+            { id: 22, name: "짬뽕", category: "중식", emoji: "🍜", price: "8,500원 ~ 10,500원", tags: ["국물", "매콤", "해장", "혼밥"], desc: "해산물이 풍부한 칼칼하고 시원한 불맛 국물" },
+            { id: 23, name: "탕수육", category: "중식", emoji: "🥩", price: "15,000원 ~ 22,000원", tags: ["바삭한", "달콤", "기분전환", "친구랑"], desc: "바삭한 튀김 옷 속에 새콤달콤 소스" },
+            { id: 24, name: "마라탕", category: "중식", emoji: "🍲", price: "10,000원 ~ 16,000원", tags: ["매콤", "국물", "중독성", "기분전환"], desc: "얼얼한 알싸함에 빠져드는 마라 중독 국물" },
+            { id: 25, name: "꿔바로우", category: "중식", emoji: "🥩", price: "18,000원 ~ 24,000원", tags: ["바삭한", "달콤", "기분전환"], desc: "찹쌀 튀김 옷의 쫀득하고 바삭한 북경식 탕수육" },
+            { id: 26, name: "중화볶음밥", category: "중식", emoji: "🍛", price: "8,000원 ~ 9,500원", tags: ["든든한", "가성비", "혼밥"], desc: "고슬고슬 불향 가득 볶아낸 고소한 밥" },
+            { id: 27, name: "깐풍기", category: "중식", emoji: "🍗", price: "22,000원 ~ 28,000원", tags: ["매콤", "바삭한", "술안주"], desc: "매콤새콤한 양념에 볶아낸 닭고기 튀김" },
+            { id: 28, name: "마파두부", category: "중식", emoji: "🥘", price: "9,000원 ~ 12,000원", tags: ["매콤", "혼밥", "부드러운"], desc: "부드러운 두부와 얼얼한 마라 고기 양념" },
+            { id: 29, name: "마라샹궈", category: "중식", emoji: "🥘", price: "18,000원 ~ 28,000원", tags: ["매콤", "중독성", "술안주"], desc: "원하는 재료를 알싸하게 볶아낸 마라 볶음" },
+            { id: 30, name: "고추잡채", category: "중식", emoji: "🫑", price: "22,000원 ~ 28,000원", tags: ["특별한 날", "담백한", "꽃빵"], desc: "아삭한 피망과 꽃빵의 부드러운 조합" },
+
+            // 일식 (10가지)
+            { id: 31, name: "돈카츠", category: "일식", emoji: "🍱", price: "10,000원 ~ 14,000원", tags: ["바삭한", "혼밥", "고기", "가성비"], desc: "두툼한 등심/안심을 바삭하게 튀겨낸 일식 돈가스" },
+            { id: 32, name: "초밥", category: "일식", emoji: "🍣", price: "15,000원 ~ 25,000원", tags: ["해산물", "깔끔한", "기분전환", "특별한 날"], desc: "신선한 회와 촛물 밥의 깔끔하고 고급스러운 조합" },
+            { id: 33, name: "라멘", category: "일식", emoji: "🍜", price: "9,500원 ~ 12,000원", tags: ["국물", "혼밥", "진한국물"], desc: "진하게 우려낸 돼지사골 진국 돈코츠 라멘" },
+            { id: 34, name: "가츠동", category: "일식", emoji: "🍲", price: "9,000원 ~ 11,000원", tags: ["혼밥", "달콤", "든든한"], desc: "달콤짭조름한 계란과 돈가스가 올려진 덮밥" },
+            { id: 35, name: "사케동", category: "일식", emoji: "🍚", price: "13,000원 ~ 16,000원", tags: ["해산물", "건강", "깔끔한", "혼밥"], desc: "부드럽고 고소한 연어가 듬뿍 올라간 연어덮밥" },
+            { id: 36, name: "우동", category: "일식", emoji: "🍜", price: "7,000원 ~ 9,000원", tags: ["국물", "가볍게", "혼밥", "가성비"], desc: "오동통한 면발과 따뜻한 가쓰오부시 육수" },
+            { id: 37, name: "야키토리", category: "일식", emoji: "🍢", price: "15,000원 ~ 25,000원", tags: ["술안주", "꼬치", "가볍게"], desc: "숯불 향이 그윽하게 배어있는 일본식 닭꼬치" },
+            { id: 38, name: "오코노미야키", category: "일식", emoji: "🥞", price: "14,000원 ~ 18,000원", tags: ["술안주", "달콤", "친구랑"], desc: "양배추와 해산물 위 가쓰오부시가 살랑이는 부침" },
+            { id: 39, name: "장어덮밥", category: "일식", emoji: "🍱", price: "22,000원 ~ 35,000원", tags: ["몸보신", "특별한 날", "달콤"], desc: "달콤한 데리야끼 소스를 바른 풍천장어 구이 덮밥" },
+            { id: 40, name: "냉소바", category: "일식", emoji: "🍜", price: "8,500원 ~ 10,500원", tags: ["시원한", "가볍게", "혼밥"], desc: "시원하고 살얼음 동동 띄운 메밀국수" },
+
+            // 양식 (8가지)
+            { id: 41, name: "파스타", category: "양식", emoji: "🍝", price: "12,000원 ~ 18,000원", tags: ["부드러운", "데이트", "기분전환"], desc: "크림, 토마토, 오일 등 취향대로 즐기는 파스타" },
+            { id: 42, name: "피자", category: "양식", emoji: "🍕", price: "18,000원 ~ 28,000원", tags: ["치즈", "파티", "친구랑", "배달"], desc: "쭉 늘어나는 치즈와 풍성한 토핑의 피자" },
+            { id: 43, name: "스테이크", category: "양식", emoji: "🥩", price: "30,000원 ~ 50,000원", tags: ["고기", "특별한 날", "데이트"], desc: "육즙이 입안에서 터지는 고급 육류 스테이크" },
+            { id: 44, name: "수제버거", category: "양식", emoji: "🍔", price: "9,500원 ~ 14,000원", tags: ["고기", "혼밥", "든든한", "바삭한"], desc: "두툼한 소고기 패티와 신선한 야채의 수제버거" },
+            { id: 45, name: "리조또", category: "양식", emoji: "🍲", price: "13,000원 ~ 17,000원", tags: ["부드러운", "데이트", "고소한"], desc: "진한 크림이나 토마토 소스로 부드럽게 익힌 쌀요리" },
+            { id: 46, name: "감바스", category: "양식", emoji: "🍤", price: "16,000원 ~ 22,000원", tags: ["해산물", "술안주", "바게트"], desc: "올리브 오일과 마늘 향이 베어든 통통한 새우" },
+            { id: 47, name: "라자냐", category: "양식", emoji: "🥘", price: "15,000원 ~ 20,000원", tags: ["치즈", "특별한 날", "풍미"], desc: "겹겹이 쌓인 넓은 면과 풍성한 라구 소스" },
+            { id: 48, name: "샐러드파스타", category: "양식", emoji: "🥗", price: "11,000원 ~ 14,000원", tags: ["건강", "가볍게", "시원한"], desc: "상큼한 드레싱과 신선한 야채가 들어간 차가운 파스타" },
+
+            // 아시안 (7가지)
+            { id: 49, name: "쌀국수", category: "아시안", emoji: "🍜", price: "9,500원 ~ 12,000원", tags: ["국물", "담백한", "혼밥", "해장"], desc: "진한 양지 육수와 숙주의 시원하고 깔끔한 쌀국수" },
+            { id: 50, name: "팟타이", category: "아시안", emoji: "🍝", price: "11,000원 ~ 14,000원", tags: ["달콤", "고소한", "해산물"], desc: "새콤달콤 매콤하게 볶아낸 태국식 볶음면" },
+            { id: 51, name: "나시고랭", category: "아시안", emoji: "🍛", price: "10,500원 ~ 13,000원", tags: ["든든한", "달콤", "혼밥"], desc: "세계적으로 인정받는 인도네시아식 감칠맛 볶음밥" },
+            { id: 52, name: "분짜", category: "아시안", emoji: "🥗", price: "13,000원 ~ 16,000원", tags: ["새콤한", "고기", "건강"], desc: "숯불 돼지고기와 생면을 상큼한 소스에 적셔먹는 요리" },
+            { id: 53, name: "푸팟퐁커리", category: "아시안", emoji: "🦀", price: "24,000원 ~ 32,000원", tags: ["특별한 날", "부드러운", "고소한"], desc: "부드러운 소프트쉘 크랩과 고소한 계란 커리" },
+            { id: 54, name: "카레라이스", category: "아시안", emoji: "🍛", price: "8,500원 ~ 11,000원", tags: ["혼밥", "가성비", "든든한"], desc: "진하게 끓여낸 풍미 가득 일본/인도식 카레" },
+            { id: 55, name: "월남쌈", category: "아시안", emoji: "🌯", price: "20,000원 ~ 30,000원", tags: ["건강", "가볍게", "신선한"], desc: "라이스페이퍼에 알록달록 야채와 고기를 싸먹는 건강식" },
+
+            // 분식 & 패스트푸드 & 야식 & 건강 (11가지)
+            { id: 56, name: "떡볶이", category: "분식", emoji: "🍡", price: "4,000원 ~ 15,000원", tags: ["매콤", "가성비", "중독성", "친구랑"], desc: "매콤달콤 소스에 쫀득한 떡과 어묵의 최강 분식" },
+            { id: 57, name: "모둠튀김", category: "분식", emoji: "🍤", price: "5,000원 ~ 8,000원", tags: ["바삭한", "가성비", "간식"], desc: "바삭바삭 갓 튀겨낸 오징어, 고구마, 김말이" },
+            { id: 58, name: "치킨", category: "야식", emoji: "🍗", price: "18,000원 ~ 24,000원", tags: ["바삭한", "야식", "맥주", "기분전환"], desc: "오늘 밤을 완벽하게 만들어줄 국민 야식 바삭 치킨" },
+            { id: 59, name: "매운닭발", category: "야식", emoji: "🐾", price: "16,000원 ~ 22,000원", tags: ["매콤", "야식", "술안주", "화끈한"], desc: "스트레스 단번에 날려주는 화끈한 매운맛" },
+            { id: 60, name: "포케보울", category: "건강", emoji: "🥗", price: "11,000원 ~ 14,000원", tags: ["건강", "가볍게", "다이어트", "혼밥"], desc: "신선한 신선 야채와 현미밥, 연어/닭가슴살의 건강 한 그릇" },
+            { id: 61, name: "샐러드", category: "건강", emoji: "🥗", price: "8,500원 ~ 12,000원", tags: ["건강", "가볍게", "다이어트"], desc: "가볍고 신선하게 속을 편안하게 해주는 샐러드" },
+            { id: 62, name: "오돌뼈", category: "야식", emoji: "🍖", price: "15,000원 ~ 19,000원", tags: ["매콤", "야식", "술안주"], desc: "오독오독 씹히는 매콤한 양념의 안주 제왕" },
+            { id: 63, name: "김밥", category: "분식", emoji: "🍙", price: "3,500원 ~ 5,000원", tags: ["가성비", "간편한", "혼밥"], desc: "속 재료 가득 고소한 참기름 냄새 폴폴 김밥" },
+            { id: 64, name: "타코야끼", category: "분식", emoji: "🐙", price: "5,000원 ~ 8,000원", tags: ["간식", "가성비", "달콤"], desc: "겉은 바삭 속은 촉촉 문어가 씹히는 타코야끼" },
+            { id: 65, name: "해물파전", category: "한식", emoji: "🥞", price: "15,000원 ~ 20,000원", tags: ["비오는날", "술안주", "해산물"], desc: "비 오거나 센치한 날 막걸리와 최고 궁합" },
+            { id: 66, name: "회덮밥", category: "일식", emoji: "🥗", price: "10,000원 ~ 13,000원", tags: ["해산물", "신선한", "혼밥"], desc: "아삭한 야채와 깍둑 썬 신선 회의 매콤한 조화" }
+        ];
+
+        let wishlist = JSON.parse(localStorage.getItem('toss_dinner_wishlist') || '[]');
+        let activeTab = 'home';
+        let currentModalFood = null;
+
+        // Filter state
+        let selectedCategory = 'ALL';
+        let selectedTag = 'ALL';
+
+        // Worldcup state
+        let worldcupCandidates = [];
+        let worldcupCurrentRound = [];
+        let worldcupNextRound = [];
+        let worldcupIndex = 0;
+
+        // Roulette state
+        let rouletteItems = [];
+        let rouletteAngle = 0;
+        let isSpinning = false;
+
+        window.onload = function() {
+            updateWishlistBadge();
+            renderCategoryChips();
+            renderTagChips();
+            applyFilters();
+            initRoulette('ALL');
+        };
+
+        function switchTab(tabId) {
+            activeTab = tabId;
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+            // Nav icon highlight styling
+            document.querySelectorAll('.nav-item').forEach(btn => {
+                btn.classList.remove('text-tossBlue', 'font-bold');
+                btn.classList.add('text-tossTextCaption', 'font-medium');
+            });
+
+            const activeNav = document.getElementById(`nav-${tabId}`);
+            if (activeNav) {
+                activeNav.classList.remove('text-tossTextCaption', 'font-medium');
+                activeNav.classList.add('text-tossBlue', 'font-bold');
+            }
+
+            // Tab specific triggers
+            if (tabId === 'worldcup') {
+                startWorldcup();
+            } else if (tabId === 'roulette') {
+                drawRouletteWheel();
+            } else if (tabId === 'saved') {
+                renderSavedTab();
+            }
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function rollRandomMenu() {
+            const btn = document.getElementById('randomRollBtn');
+            const slotDisplay = document.getElementById('slotDisplay');
+            const emojiEl = document.getElementById('slotEmoji');
+            const nameEl = document.getElementById('slotName');
+            const catEl = document.getElementById('slotCategory');
+
+            btn.disabled = true;
+            btn.classList.add('opacity-75');
+
+            let counter = 0;
+            const maxRolls = 20;
+            const interval = setInterval(() => {
+                const randomPick = FOOD_DATABASE[Math.floor(Math.random() * FOOD_DATABASE.length)];
+                emojiEl.textContent = randomPick.emoji;
+                nameEl.textContent = randomPick.name;
+                catEl.textContent = `${randomPick.category} • ${randomPick.tags[0] || '추천'}`;
+
+                // Add small bounce
+                emojiEl.style.transform = `scale(${1 + (counter % 2) * 0.15})`;
+
+                counter++;
+                if (counter >= maxRolls) {
+                    clearInterval(interval);
+                    btn.disabled = false;
+                    btn.classList.remove('opacity-75');
+                    emojiEl.style.transform = 'scale(1)';
+
+                    // Final Pick Celebration
+                    const finalPick = FOOD_DATABASE[Math.floor(Math.random() * FOOD_DATABASE.length)];
+                    emojiEl.textContent = finalPick.emoji;
+                    nameEl.textContent = finalPick.name;
+                    catEl.textContent = `${finalPick.category} • ${finalPick.tags.join(', ')}`;
+
+                    // Trigger Confetti Celebration
+                    triggerConfetti();
+
+                    // Open Detail Modal after short pause
+                    setTimeout(() => {
+                        openDetailModal(finalPick);
+                    }, 400);
+                }
+            }, 80);
+        }
+
+        function quickFilterPick(tag) {
+            switchTab('filter');
+            selectTag(tag);
+        }
+
+        const CATEGORIES = ['전체', '한식', '중식', '일식', '양식', '아시안', '분식', '야식', '건강'];
+        const POPULAR_TAGS = ['전체태그', '국물', '매콤', '혼밥', '고기', '가성비', '술안주', '건강', '바삭한', '달콤', '해산물'];
+
+        function renderCategoryChips() {
+            const container = document.getElementById('categoryChips');
+            container.innerHTML = CATEGORIES.map(cat => {
+                const isSelected = (cat === '전체' && selectedCategory === 'ALL') || selectedCategory === cat;
+                return `
+                    <button onclick="selectCategory('${cat === '전체' ? 'ALL' : cat}')" 
+                        class="px-4 py-2 rounded-full text-xs font-bold shrink-0 toss-btn ${isSelected ? 'bg-tossBlue text-white shadow-sm' : 'bg-white text-tossTextSecondary border border-gray-100'}">
+                        ${cat}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function renderTagChips() {
+            const container = document.getElementById('tagChips');
+            container.innerHTML = POPULAR_TAGS.map(tag => {
+                const isSelected = (tag === '전체태그' && selectedTag === 'ALL') || selectedTag === tag;
+                return `
+                    <button onclick="selectTag('${tag === '전체태그' ? 'ALL' : tag}')" 
+                        class="px-3 py-1.5 rounded-xl text-xs font-medium toss-btn ${isSelected ? 'bg-tossTextPrimary text-white' : 'bg-white text-tossTextCaption border border-gray-100'}">
+                        #${tag}
+                    </button>
+                `;
+            }).join('');
+        }
+
+        function selectCategory(cat) {
+            selectedCategory = cat;
+            renderCategoryChips();
+            applyFilters();
+        }
+
+        function selectTag(tag) {
+            selectedTag = tag;
+            renderTagChips();
+            applyFilters();
+        }
+
+        function resetFilters() {
+            selectedCategory = 'ALL';
+            selectedTag = 'ALL';
+            document.getElementById('searchInput').value = '';
+            renderCategoryChips();
+            renderTagChips();
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const query = document.getElementById('searchInput').value.trim().toLowerCase();
+
+            const filtered = FOOD_DATABASE.filter(food => {
+                const matchCategory = selectedCategory === 'ALL' || food.category === selectedCategory;
+                const matchTag = selectedTag === 'ALL' || food.tags.includes(selectedTag);
+                const matchSearch = !query || 
+                    food.name.toLowerCase().includes(query) || 
+                    food.category.toLowerCase().includes(query) || 
+                    food.tags.some(t => t.toLowerCase().includes(query));
+
+                return matchCategory && matchTag && matchSearch;
+            });
+
+            document.getElementById('resultCount').textContent = filtered.length;
+            renderMenuGrid(filtered);
+        }
+
+        function renderMenuGrid(items) {
+            const grid = document.getElementById('menuGrid');
+            if (items.length === 0) {
+                grid.innerHTML = `
+                    <div class="bg-white rounded-3xl p-8 text-center text-tossTextCaption space-y-2">
+                        <div class="text-4xl">🔍</div>
+                        <div class="text-sm font-semibold">검색 결과가 없어요</div>
+                        <div class="text-xs">다른 검색어나 필터를 선택해 보세요.</div>
+                    </div>
+                `;
+                return;
+            }
+
+            grid.innerHTML = items.map(food => {
+                const isWish = wishlist.some(item => item.id === food.id);
+                return `
+                    <div class="bg-white rounded-2xl p-4 shadow-toss border border-gray-100/80 flex items-center justify-between hover:border-tossBlue/30 transition-all">
+                        <div onclick="openDetailModalById(${food.id})" class="flex items-center space-x-3.5 cursor-pointer flex-1">
+                            <div class="w-12 h-12 rounded-2xl bg-tossGrayBg flex items-center justify-center text-2xl shrink-0">
+                                ${food.emoji}
+                            </div>
+                            <div class="space-y-0.5">
+                                <div class="flex items-center space-x-2">
+                                    <h4 class="text-base font-bold text-tossTextPrimary">${food.name}</h4>
+                                    <span class="text-[10px] px-2 py-0.5 rounded-full bg-gray-100 text-tossTextCaption font-semibold">${food.category}</span>
+                                </div>
+                                <p class="text-xs text-tossTextSecondary line-clamp-1">${food.desc}</p>
+                                <div class="flex flex-wrap gap-1 pt-1">
+                                    ${food.tags.slice(0, 3).map(t => `<span class="text-[10px] text-tossBlue font-medium">#${t}</span>`).join('')}
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="toggleWishlist(${food.id})" class="p-2.5 rounded-full hover:bg-gray-50 toss-btn shrink-0">
+                            <span class="text-lg">${isWish ? '❤️️' : '🤍'}</span>
+                        </button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function startWorldcup() {
+            // Shuffle database and pick 8 candidates
+            const shuffled = [...FOOD_DATABASE].sort(() => 0.5 - Math.random());
+            worldcupCandidates = shuffled.slice(0, 8);
+            worldcupCurrentRound = [...worldcupCandidates];
+            worldcupNextRound = [];
+            worldcupIndex = 0;
+
+            document.getElementById('worldcupArena').classList.remove('hidden');
+            document.getElementById('worldcupWinner').classList.add('hidden');
+
+            renderWorldcupMatch();
+        }
+
+        function renderWorldcupMatch() {
+            const totalMatches = worldcupCurrentRound.length / 2;
+            const currentMatchNum = (worldcupIndex / 2) + 1;
+            const roundTitle = worldcupCurrentRound.length === 8 ? '8강전' : worldcupCurrentRound.length === 4 ? '준결승 4강전' : '결승전';
+
+            document.getElementById('worldcupRoundText').textContent = `${roundTitle} (${currentMatchNum}/${totalMatches})`;
+            
+            const progressPercent = ((currentMatchNum - 1) / totalMatches) * 100;
+            document.getElementById('worldcupProgress').style.width = `${Math.max(10, progressPercent)}%`;
+
+            const foodA = worldcupCurrentRound[worldcupIndex];
+            const foodB = worldcupCurrentRound[worldcupIndex + 1];
+
+            document.getElementById('worldcupEmojiA').textContent = foodA.emoji;
+            document.getElementById('worldcupNameA').textContent = foodA.name;
+            document.getElementById('worldcupTagsA').textContent = foodA.tags.map(t => `#${t}`).join(' ');
+
+            document.getElementById('worldcupEmojiB').textContent = foodB.emoji;
+            document.getElementById('worldcupNameB').textContent = foodB.name;
+            document.getElementById('worldcupTagsB').textContent = foodB.tags.map(t => `#${t}`).join(' ');
+        }
+
+        function selectWorldcupMatch(winnerIndexOffset) {
+            const winner = worldcupCurrentRound[worldcupIndex + winnerIndexOffset];
+            worldcupNextRound.push(winner);
+            worldcupIndex += 2;
+
+            if (worldcupIndex >= worldcupCurrentRound.length) {
+                // Round finished
+                if (worldcupNextRound.length === 1) {
+                    // Winner crowned!
+                    showWorldcupWinner(worldcupNextRound[0]);
+                    return;
+                }
+                worldcupCurrentRound = [...worldcupNextRound];
+                worldcupNextRound = [];
+                worldcupIndex = 0;
+            }
+
+            renderWorldcupMatch();
+        }
+
+        function showWorldcupWinner(winner) {
+            currentModalFood = winner;
+            document.getElementById('worldcupArena').classList.add('hidden');
+            const winnerEl = document.getElementById('worldcupWinner');
+            winnerEl.classList.remove('hidden');
+
+            document.getElementById('winnerEmoji').textContent = winner.emoji;
+            document.getElementById('winnermenuName').textContent = winner.name;
+            document.getElementById('winnerDesc').textContent = winner.desc;
+            document.getElementById('winnerTags').innerHTML = winner.tags.map(t => `<span class="px-2.5 py-1 rounded-full bg-amber-50 text-amber-700 text-xs font-semibold">#${t}</span>`).join('');
+
+            triggerConfetti();
+        }
+
+        function openMapSearchFromWinner() {
+            if (currentModalFood) {
+                const query = encodeURIComponent(`근처 ${currentModalFood.name} 맛집`);
+                window.open(`https://map.naver.com/v5/search/${query}`, '_blank');
+            }
+        }
+
+        function restartWorldcup() {
+            startWorldcup();
+        }
+
+        const ROULETTE_COLORS = ['#3182F6', '#1B64DA', '#60A5FA', '#93C5FD', '#2563EB', '#3B82F6', '#1D4ED8', '#60A5FA'];
+
+        function setRouletteCategory(cat) {
+            document.querySelectorAll('.roulette-cat-btn').forEach(btn => {
+                btn.classList.remove('bg-tossTextPrimary', 'text-white');
+                btn.classList.add('bg-white', 'text-tossTextSecondary');
+            });
+            event.currentTarget.classList.remove('bg-white', 'text-tossTextSecondary');
+            event.currentTarget.classList.add('bg-tossTextPrimary', 'text-white');
+
+            initRoulette(cat);
+        }
+
+        function initRoulette(category) {
+            let pool = category === 'ALL' ? FOOD_DATABASE : FOOD_DATABASE.filter(f => f.category === category);
+            // Pick 8 random items for the wheel
+            rouletteItems = [...pool].sort(() => 0.5 - Math.random()).slice(0, 8);
+            rouletteAngle = 0;
+            drawRouletteWheel();
+        }
+
+        function drawRouletteWheel() {
+            const canvas = document.getElementById('rouletteCanvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            const numItems = rouletteItems.length;
+            if (numItems === 0) return;
+
+            const arc = (2 * Math.PI) / numItems;
+            const radius = canvas.width / 2;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            for (let i = 0; i < numItems; i++) {
+                const angle = i * arc;
+                ctx.beginPath();
+                ctx.fillStyle = ROULETTE_COLORS[i % ROULETTE_COLORS.length];
+                ctx.moveTo(radius, radius);
+                ctx.arc(radius, radius, radius - 4, angle, angle + arc);
+                ctx.lineTo(radius, radius);
+                ctx.fill();
+
+                // Text & Emoji render
+                ctx.save();
+                ctx.fillStyle = "#FFFFFF";
+                ctx.translate(
+                    radius + Math.cos(angle + arc / 2) * (radius - 55),
+                    radius + Math.sin(angle + arc / 2) * (radius - 55)
+                );
+                ctx.rotate(angle + arc / 2 + Math.PI / 2);
+
+                const item = rouletteItems[i];
+                ctx.font = "bold 13px Pretendard";
+                ctx.textAlign = "center";
+                ctx.fillText(item.name, 0, 0);
+                ctx.font = "18px Pretendard";
+                ctx.fillText(item.emoji, 0, -18);
+
+                ctx.restore();
+            }
+        }
+
+        function spinRouletteWheel() {
+            if (isSpinning) return;
+            isSpinning = true;
+
+            const canvas = document.getElementById('rouletteCanvas');
+            const btn = document.getElementById('spinWheelBtn');
+            btn.disabled = true;
+            btn.classList.add('opacity-50');
+
+            const numItems = rouletteItems.length;
+            const randomIndex = Math.floor(Math.random() * numItems);
+            
+            // Calculate target angle to point at pointer (top, 270 degrees)
+            const arcDeg = 360 / numItems;
+            const targetItemDegree = (randomIndex * arcDeg) + (arcDeg / 2);
+            const extraRotations = 5 * 360; // 5 full spins
+            const finalDegree = extraRotations + (270 - targetItemDegree);
+
+            canvas.style.transform = `rotate(${finalDegree}deg)`;
+
+            setTimeout(() => {
+                isSpinning = false;
+                btn.disabled = false;
+                btn.classList.remove('opacity-50');
+
+                const winner = rouletteItems[randomIndex];
+                triggerConfetti();
+
+                setTimeout(() => {
+                    openDetailModal(winner);
+                }, 300);
+
+            }, 4000);
+        }
+
+        function toggleWishlist(foodId) {
+            const targetFood = FOOD_DATABASE.find(f => f.id === foodId);
+            if (!targetFood) return;
+
+            const existsIdx = wishlist.findIndex(item => item.id === foodId);
+            if (existsIdx >= 0) {
+                wishlist.splice(existsIdx, 1);
+                showToast(`'${targetFood.name}' 보관함에서 삭제됨`);
+            } else {
+                wishlist.push(targetFood);
+                showToast(`'${targetFood.name}' 보관함에 저장됨! ❤️`);
+            }
+
+            localStorage.setItem('toss_dinner_wishlist', JSON.stringify(wishlist));
+            updateWishlistBadge();
+            applyFilters();
+            if (activeTab === 'saved') renderSavedTab();
+            updateModalWishlistBtnState();
+        }
+
+        function updateWishlistBadge() {
+            const badge = document.getElementById('wishlistBadge');
+            if (wishlist.length > 0) {
+                badge.textContent = wishlist.length;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        function openWishlistModal() {
+            switchTab('saved');
+        }
+
+        function renderSavedTab() {
+            const container = document.getElementById('savedMenuList');
+            if (wishlist.length === 0) {
+                container.innerHTML = `
+                    <div class="bg-white rounded-3xl p-10 text-center text-tossTextCaption space-y-2">
+                        <div class="text-5xl">❤️</div>
+                        <div class="text-sm font-bold text-tossTextPrimary">보관함이 비어있어요</div>
+                        <div class="text-xs">마음에 드는 저녁 메뉴를 하트로 저장해 보세요!</div>
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = wishlist.map(food => `
+                <div class="bg-white rounded-2xl p-4 shadow-toss border border-gray-100 flex items-center justify-between">
+                    <div onclick="openDetailModalById(${food.id})" class="flex items-center space-x-3.5 cursor-pointer flex-1">
+                        <div class="w-12 h-12 rounded-2xl bg-tossGrayBg flex items-center justify-center text-2xl shrink-0">
+                            ${food.emoji}
+                        </div>
+                        <div>
+                            <h4 class="text-base font-bold text-tossTextPrimary">${food.name}</h4>
+                            <p class="text-xs text-tossTextCaption">${food.category} • ${food.price}</p>
+                        </div>
+                    </div>
+                    <button onclick="toggleWishlist(${food.id})" class="text-xs text-red-500 font-medium p-2 hover:bg-red-50 rounded-xl toss-btn">
+                        삭제
+                    </button>
+                </div>
+            `).join('');
+        }
+
+        function clearAllWishlist() {
+            if (wishlist.length === 0) return;
+            wishlist = [];
+            localStorage.setItem('toss_dinner_wishlist', JSON.stringify(wishlist));
+            updateWishlistBadge();
+            renderSavedTab();
+            showToast('보관함이 모두 비워졌습니다.');
+        }
+
+        function openDetailModalById(id) {
+            const food = FOOD_DATABASE.find(f => f.id === id);
+            if (food) openDetailModal(food);
+        }
+
+        function openDetailModal(food) {
+            currentModalFood = food;
+            document.getElementById('modalEmoji').textContent = food.emoji;
+            document.getElementById('modalName').textContent = food.name;
+            document.getElementById('modalDesc').textContent = food.desc;
+            document.getElementById('modalCategoryBadge').textContent = food.category;
+            document.getElementById('modalPrice').textContent = food.price;
+            document.getElementById('modalTagsCount').textContent = food.tags.map(t => `#${t}`).join(' ');
+
+            document.getElementById('modalTags').innerHTML = food.tags.map(t => `
+                <span class="px-3 py-1 rounded-full bg-tossGrayBg text-tossTextSecondary text-xs font-semibold">#${t}</span>
+            `).join('');
+
+            // Map Links
+            const query = encodeURIComponent(`근처 ${food.name} 맛집`);
+            document.getElementById('naverMapBtn').href = `https://map.naver.com/v5/search/${query}`;
+            document.getElementById('kakaoMapBtn').href = `https://map.kakao.com/link/search/${query}`;
+
+            updateModalWishlistBtnState();
+
+            document.getElementById('detailModal').classList.remove('hidden');
+        }
+
+        function updateModalWishlistBtnState() {
+            if (!currentModalFood) return;
+            const isWish = wishlist.some(f => f.id === currentModalFood.id);
+            document.getElementById('wishlistIcon').textContent = isWish ? '❤️' : '🤍';
+            document.getElementById('wishlistText').textContent = isWish ? '보관함에서 제거' : '내 보관함에 찜하기';
+        }
+
+        function toggleCurrentModalWishlist() {
+            if (currentModalFood) {
+                toggleWishlist(currentModalFood.id);
+            }
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function triggerConfetti() {
+            confetti({
+                particleCount: 70,
+                spread: 60,
+                origin: { y: 0.7 },
+                colors: ['#3182F6', '#1B64DA', '#FFD15C', '#FF5A5F']
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            document.getElementById('toastMsg').textContent = msg;
+            toast.classList.remove('opacity-0', 'pointer-events-none');
+            setTimeout(() => {
+                toast.classList.add('opacity-0', 'pointer-events-none');
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
